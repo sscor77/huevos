@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -7,20 +7,25 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background-image: url('https://images.unsplash.com/photo-1587397845856-5f18ad8d0da5?auto=format&fit=crop&w=1600&q=80');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      background-position: center;
       padding: 20px;
     }
     h1 {
-      color: #333;
+      color: #fff;
+      text-shadow: 1px 1px 4px #000;
       text-align: center;
     }
-    form, .resumen, .selector-mes {
-      background: #fff;
+    form, .resumen, .selector-mes, .eliminar-dia, .lista-registros {
+      background: rgba(255, 255, 255, 0.95);
       padding: 20px;
       margin: 20px auto;
       max-width: 500px;
       border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.3);
     }
     label {
       display: block;
@@ -40,6 +45,7 @@
       border: none;
       border-radius: 5px;
       cursor: pointer;
+      margin-top: 10px;
     }
     button:hover {
       background: #218838;
@@ -47,6 +53,14 @@
     .resumen {
       text-align: center;
       font-size: 1.2em;
+    }
+    .lista-registros ul {
+      list-style: none;
+      padding: 0;
+    }
+    .lista-registros li {
+      padding: 5px 0;
+      border-bottom: 1px solid #ddd;
     }
   </style>
 </head>
@@ -71,14 +85,26 @@
     <button type="submit">Guardar</button>
   </form>
 
+  <div class="eliminar-dia">
+    <label for="fechaEliminar">Eliminar datos de un día</label>
+    <input type="date" id="fechaEliminar">
+    <button onclick="eliminarRegistroDia()">Eliminar día</button>
+  </div>
+
   <div class="resumen">
     <p><strong>Beneficio Total del Mes: </strong><span id="beneficio">0.00</span> €</p>
+  </div>
+
+  <div class="lista-registros">
+    <h3>Registros del mes</h3>
+    <ul id="listaRegistros"></ul>
   </div>
 
   <script>
     const formulario = document.getElementById('formulario');
     const beneficioSpan = document.getElementById('beneficio');
     const selectorMes = document.getElementById('mesSeleccionado');
+    const listaRegistros = document.getElementById('listaRegistros');
     const precioDocena = 2.5;
 
     let registros = JSON.parse(localStorage.getItem('registrosHuevos')) || {};
@@ -128,13 +154,33 @@
       let totalVentas = 0;
       let totalPienso = 0;
 
+      listaRegistros.innerHTML = '';
+
       registros[mesActual].forEach(item => {
         totalVentas += item.docenas * precioDocena;
         totalPienso += item.pienso;
+
+        const li = document.createElement('li');
+        li.textContent = `${item.fecha} - ${item.docenas} docenas - ${item.pienso.toFixed(2)} € en pienso`;
+        listaRegistros.appendChild(li);
       });
 
       const beneficio = totalVentas - totalPienso;
       beneficioSpan.textContent = beneficio.toFixed(2);
+    }
+
+    function eliminarRegistroDia() {
+      const fechaEliminar = document.getElementById('fechaEliminar').value;
+      const mes = obtenerMes(fechaEliminar);
+
+      if (!registros[mes]) return;
+      registros[mes] = registros[mes].filter(item => item.fecha !== fechaEliminar);
+
+      if (registros[mes].length === 0) delete registros[mes];
+
+      localStorage.setItem('registrosHuevos', JSON.stringify(registros));
+      actualizarSelectorMes();
+      calcularBeneficio();
     }
 
     actualizarSelectorMes();
