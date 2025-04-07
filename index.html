@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Beneficio Mensual - Huevos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+      text-align: center;
+    }
+    form, .resumen, .selector-mes {
+      background: #fff;
+      padding: 20px;
+      margin: 20px auto;
+      max-width: 500px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+    }
+    input[type="number"], input[type="date"], select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      background: #28a745;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #218838;
+    }
+    .resumen {
+      text-align: center;
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <h1>Registro de Ventas y Gastos</h1>
+
+  <div class="selector-mes">
+    <label for="mesSeleccionado">Selecciona un mes</label>
+    <select id="mesSeleccionado"></select>
+  </div>
+
+  <form id="formulario">
+    <label for="fecha">Fecha</label>
+    <input type="date" id="fecha" required>
+
+    <label for="docenas">Docenas vendidas</label>
+    <input type="number" id="docenas" required min="0">
+
+    <label for="pienso">Gasto en pienso (€)</label>
+    <input type="number" id="pienso" step="0.01" required min="0">
+
+    <button type="submit">Guardar</button>
+  </form>
+
+  <div class="resumen">
+    <p><strong>Beneficio Total del Mes: </strong><span id="beneficio">0.00</span> €</p>
+  </div>
+
+  <script>
+    const formulario = document.getElementById('formulario');
+    const beneficioSpan = document.getElementById('beneficio');
+    const selectorMes = document.getElementById('mesSeleccionado');
+    const precioDocena = 2.5;
+
+    let registros = JSON.parse(localStorage.getItem('registrosHuevos')) || {};
+
+    function obtenerMes(fecha) {
+      const d = new Date(fecha);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+
+    function actualizarSelectorMes() {
+      selectorMes.innerHTML = '';
+      const meses = Object.keys(registros).sort();
+      meses.forEach(mes => {
+        const option = document.createElement('option');
+        option.value = mes;
+        option.textContent = new Date(mes + '-01').toLocaleString('es-ES', { month: 'long', year: 'numeric' });
+        selectorMes.appendChild(option);
+      });
+      if (meses.length > 0) {
+        selectorMes.value = meses[meses.length - 1];
+        calcularBeneficio();
+      }
+    }
+
+    formulario.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const fecha = document.getElementById('fecha').value;
+      const docenas = parseInt(document.getElementById('docenas').value);
+      const pienso = parseFloat(document.getElementById('pienso').value);
+      const mes = obtenerMes(fecha);
+
+      if (!registros[mes]) registros[mes] = [];
+      registros[mes].push({ fecha, docenas, pienso });
+
+      localStorage.setItem('registrosHuevos', JSON.stringify(registros));
+      actualizarSelectorMes();
+      calcularBeneficio();
+      formulario.reset();
+    });
+
+    selectorMes.addEventListener('change', calcularBeneficio);
+
+    function calcularBeneficio() {
+      const mesActual = selectorMes.value;
+      if (!registros[mesActual]) return;
+
+      let totalVentas = 0;
+      let totalPienso = 0;
+
+      registros[mesActual].forEach(item => {
+        totalVentas += item.docenas * precioDocena;
+        totalPienso += item.pienso;
+      });
+
+      const beneficio = totalVentas - totalPienso;
+      beneficioSpan.textContent = beneficio.toFixed(2);
+    }
+
+    actualizarSelectorMes();
+  </script>
+</body>
+</html>
